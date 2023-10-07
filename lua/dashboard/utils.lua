@@ -1,5 +1,6 @@
 local uv = vim.loop
 local utils = {}
+local Path = require "plenary.path"
 
 utils.is_win = uv.os_uname().version:match('Windows')
 
@@ -104,8 +105,12 @@ end
 --- return the most recently files list
 function utils.get_mru_list()
   local mru = {}
+  local cwd = vim.loop.cwd()
+  cwd = cwd .. Path.path.sep
+  cwd = cwd:gsub([[\]], [[\\]])
   for _, file in pairs(vim.v.oldfiles or {}) do
-    if file and vim.fn.filereadable(file) == 1 then
+    if file and vim.fn.filereadable(file) == 1 and vim.fn.matchstrpos(file, cwd)[2] ~= -1 then
+
       table.insert(mru, file)
     end
   end

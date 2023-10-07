@@ -1,6 +1,7 @@
 local api, keymap = vim.api, vim.keymap
 local utils = require('dashboard.utils')
 local ns = api.nvim_create_namespace('dashboard')
+local Path = require "plenary.path"
 
 local function gen_shortcut(config)
   local shortcut = config.shortcut
@@ -172,12 +173,16 @@ local function mru_list(config)
   local groups = {}
   local mlist = utils.get_mru_list()
 
+  local cwd = vim.loop.cwd()
+  cwd = cwd .. Path.path.sep
+  cwd = cwd:gsub([[%.]], [[%%.]])
+  cwd = cwd:gsub([[%-]], [[%%-]])
   for _, file in pairs(vim.list_slice(mlist, 1, config.mru.limit)) do
     local filename = vim.fn.fnamemodify(file, ':t')
     local icon, group = utils.get_icon(filename)
     icon = icon or ' '
     if not utils.is_win then
-      file = file:gsub(vim.env.HOME, '~')
+      file = file:gsub(cwd, ' ')
     end
     file = icon .. ' ' .. file
     table.insert(groups, { #icon, group })
@@ -261,10 +266,12 @@ end
 local function map_key(config, key, content)
   keymap.set('n', key, function()
     local text = content or api.nvim_get_current_line()
-    local scol = utils.is_win and text:find('%w') or text:find('%p')
+    local scol = utils.is_win and text:find('%w') or text:find('%a')
     text = text:sub(scol)
     local path = text:sub(1, text:find('%w(%s+)$'))
     path = vim.fs.normalize(path)
+    local cwd = vim.loop.cwd()
+    path = cwd .. "/" .. path
     if vim.fn.isdirectory(path) == 1 then
       vim.cmd('lcd ' .. path)
       if type(config.project.action) == 'function' then
